@@ -3,7 +3,7 @@ goog.provide('poker.start');
 goog.require('goog.dom');
 
 poker.start = function() {
-  var newDiv = goog.dom.createDom('h1', {'style': 'background-color:#EEE'},
+  var newDiv = goog.dom.createDom('h1', {'style': 'background-color:#FFF'},
       'Hello world!');
   goog.dom.appendChild(document.body, newDiv);
 };
