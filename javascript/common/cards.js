@@ -31,6 +31,8 @@
 
 goog.provide('poker.cards');
 
+goog.require('poker.hashtables');
+
 
 /**
  * Card suits.
@@ -136,15 +138,139 @@ poker.cards.toStringSingle_ = function(cardNum) {
     case 3: suit = poker.cards.Suit.CLUB; break;
   }
   // Gets rank.
-  var numNum = (cardNum - 1) / 4 + 2;
-  if (numNum == 14) {
-    numNum = 1;
+  var rankNum = (cardNum - 1) / 4 + 2;
+  if (rankNum == 14) {
+    rankNum = 1;
   }
-  if (numNum >= 2 && numNum <= 9) {
-    rank = numNum.toString();
+  if (rankNum >= 2 && rankNum <= 9) {
+    rank = rankNum.toString();
   } else {
-    rank = poker.cards.Ranks[numNum.toString()];
-    goog.asserts.assert(rank, 'Wrong rank: ' + numNum.toString());
+    rank = poker.cards.Ranks[rankNum.toString()];
+    goog.asserts.assert(rank, 'Wrong rank: ' + rankNum.toString());
   }
   return suit + rank;
+};
+
+
+/**
+ * Evaluates the given cards in terms of poker hand. The returned value ranges
+ * from {@code 1} to {@code 7462} introduced by {@link
+ * http://www.suffecool.net/poker/evaluator.html}. The smaller value represents
+ * the stronger hand. We can evaluate 5 to 7 cards and choose the best hand
+ * among all possible 5 cards as we normally do in texas hold'em.
+ * @param {number|string} cardsNumOrStr Cards of number or string.
+ * @param {(number|string)=} opt_otherCardsNumOrStr Additional cards of
+ *     number or string. If this is given, all cards mixed with the first
+ *     arguments are considered to evaluate. So you can use this like you pass
+ *     a player's hand as the first argument and a flop as the second argument.
+ * @return {number}
+ */
+poker.cards.evalHand = function(cardsNumOrStr, opt_otherCardsNumOrStr) {
+  /**
+   * Array of all cards of number.
+   * @type {Array.<number>}
+   */
+  var allCards = [];
+  for (var cardsNum = typeof cardsNumOrStr == 'number' ?
+      cardsNumOrStr : poker.cards.fromString(cardsNumOrStr);
+      cardsNum != 0; cardsNum /= 53) {
+    allCards.push(cardsNum % 53);
+  }
+  if (opt_otherCardsNumOrStr) {
+    for (cardsNum = typeof opt_otherCardsNumOrStr == 'number' ?
+        opt_otherCardsNumOrStr : poker.cards.fromString(opt_otherCardsNumOrStr);
+        cardsNum != 0; cardsNum /= 53) {
+      allCards.push(cardsNum % 53);
+    }
+  }
+  if (allCards.length == 5) {
+    return poker.cards.eval5Cards_(allCards);
+  } else if (allCards.length == 6) {
+    var bestHand = 9999;
+    for (var i = 0; i < 6; ++i) {
+      /** @type {Array.<number>} */
+      var cards = [];
+      for (var j = 0; j < 6; ++j) {
+        if (i != j) {
+          cards.push(allCards[j]);
+        }
+      }
+      var hand = poker.cards.eval5Cards_(cards);
+      if (hand < bestHand) {
+        bestHand = hand;
+      }
+    }
+    return bestHand;
+  } else if (allCards.length == 7) {
+    bestHand = 9999;
+    for (i = 0; i < 6; ++i) {
+      for (j = i + 1; j < 7; ++j) {
+        cards = [];
+        for (var k = 0; k < 7; ++k) {
+          if (k != i && k != j) {
+            cards.push(allCards[k]);
+          }
+        }
+        hand = poker.cards.eval5Cards_(cards);
+        if (hand < bestHand) {
+          bestHand = hand;
+        }
+      }
+    }
+    return bestHand;
+  } else {
+    goog.asserts.fail(
+        'The number of cards should be 5 to 7: ' + allCards.length);
+  }
+};
+
+
+/**
+ * Evaluates 5 cards as poker hand. The returned value is the same value
+ * described at {@code evalHand}.
+ * @param {Array.<number>} cards Array of cards of number.
+ * @return {number}
+ * @private
+ */
+poker.cards.eval5Cards_ = function(cards) {
+  var rankBits = 0;
+  for (var i = 0; i < 5; ++i) {
+    rankBits |= 1 << ((cards[i] - 1) / 4);
+  }
+  var unique5 = poker.hashtables.UNIQUE5[rankBits];
+  if (unique5) {
+    // There is no pair so check if flush.
+    var flush = true;
+    for (var suitOfFirstCard = cards[0] % 4, i = 1; i < 5; ++i) {
+      if (suitOfFirstCard != cards[i] % 4) {
+        flush = false;
+        break;
+      }
+    }
+    if (flush) {
+      if (unique5 < 1610) {
+        // Straight flush.
+        return unique5 - 1599;
+      } else {
+        // Flush.
+        return unique5 - 5863;
+      }
+    } else {
+      // Straight or high card.
+      return unique5;
+    }
+  } else {
+    // Pair. See {@link http://www.psenzee.com/code/fast_eval.c}.
+    var product = 1;
+    for (i = 0; i < 5; ++i) {
+      product *= poker.hashtables.RANK_PRIMES[(cards[i] - 1) / 4];
+    }
+    product += 0xe91aaa35;
+    product ^= product >> 16;
+    product += product << 8;
+    product ^= product >> 4;
+    var a  = (product + (product << 2)) >> 19;
+    var b  = (product >> 8) & 0x1ff;
+    return poker.hashtables.PAIR[a ^ poker.hashtables.PAIR_ADJUST[b]];
+  }
 };
