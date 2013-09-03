@@ -31,6 +31,7 @@
 
 goog.provide('poker.cards');
 
+goog.require('goog.asserts');
 goog.require('poker.hashtables');
 
 
@@ -82,7 +83,7 @@ poker.cards.fromString = function(cardsStr) {
  */
 poker.cards.toString = function(cardsNum) {
   var strs = [];
-  for (var cards = cardsNum; cards !=0; cards /= 53) {
+  for (var cards = cardsNum; cards != 0; cards = cards / 53 >> 0) {
     strs.push(poker.cards.toStringSingle_(cards % 53));
   }
   return strs.reverse().join('');
@@ -106,7 +107,7 @@ poker.cards.fromStringSingle_ = function(cardStr) {
     default: goog.asserts.fail('Unknown suit: ' + cardStr[0]);
   }
   // Gets rank.
-  if (['2', '3', '4', '5', '6', '7', '8', '9'].contains(cardStr[1])) {
+  if (['2', '3', '4', '5', '6', '7', '8', '9'].indexOf(cardStr[1]) >= 0) {
     rank = parseInt(cardStr[1]) - 2;
   } else {
     switch (cardStr[1]) {
@@ -138,7 +139,7 @@ poker.cards.toStringSingle_ = function(cardNum) {
     case 3: suit = poker.cards.Suit.CLUB; break;
   }
   // Gets rank.
-  var rankNum = (cardNum - 1) / 4 + 2;
+  var rankNum = ((cardNum - 1) / 4 >> 0) + 2;
   if (rankNum == 14) {
     rankNum = 1;
   }
@@ -173,13 +174,13 @@ poker.cards.evalHand = function(cardsNumOrStr, opt_otherCardsNumOrStr) {
   var allCards = [];
   for (var cardsNum = typeof cardsNumOrStr == 'number' ?
       cardsNumOrStr : poker.cards.fromString(cardsNumOrStr);
-      cardsNum != 0; cardsNum /= 53) {
+      cardsNum != 0; cardsNum = cardsNum / 53 >> 0) {
     allCards.push(cardsNum % 53);
   }
   if (opt_otherCardsNumOrStr) {
     for (cardsNum = typeof opt_otherCardsNumOrStr == 'number' ?
         opt_otherCardsNumOrStr : poker.cards.fromString(opt_otherCardsNumOrStr);
-        cardsNum != 0; cardsNum /= 53) {
+        cardsNum != 0; cardsNum = cardsNum / 53 >> 0) {
       allCards.push(cardsNum % 53);
     }
   }
@@ -235,7 +236,7 @@ poker.cards.evalHand = function(cardsNumOrStr, opt_otherCardsNumOrStr) {
 poker.cards.eval5Cards_ = function(cards) {
   var rankBits = 0;
   for (var i = 0; i < 5; ++i) {
-    rankBits |= 1 << ((cards[i] - 1) / 4);
+    rankBits |= 1 << (cards[i] - 1) / 4;
   }
   var unique5 = poker.hashtables.UNIQUE5[rankBits];
   if (unique5) {
@@ -263,14 +264,15 @@ poker.cards.eval5Cards_ = function(cards) {
     // Pair. See {@link http://www.psenzee.com/code/fast_eval.c}.
     var product = 1;
     for (i = 0; i < 5; ++i) {
-      product *= poker.hashtables.RANK_PRIMES[(cards[i] - 1) / 4];
+      product *= poker.hashtables.RANK_PRIMES[(cards[i] - 1) / 4 >> 0];
     }
+    //debugger;
     product += 0xe91aaa35;
-    product ^= product >> 16;
+    product ^= product >>> 16;
     product += product << 8;
-    product ^= product >> 4;
-    var a  = (product + (product << 2)) >> 19;
-    var b  = (product >> 8) & 0x1ff;
+    product ^= product >>> 4;
+    var a  = (product + (product << 2)) >>> 19;
+    var b  = (product >>> 8) & 0x1ff;
     return poker.hashtables.PAIR[a ^ poker.hashtables.PAIR_ADJUST[b]];
   }
 };
