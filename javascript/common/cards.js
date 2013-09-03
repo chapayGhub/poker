@@ -266,7 +266,6 @@ poker.cards.eval5Cards_ = function(cards) {
     for (i = 0; i < 5; ++i) {
       product *= poker.hashtables.RANK_PRIMES[(cards[i] - 1) / 4 >> 0];
     }
-    //debugger;
     product += 0xe91aaa35;
     product ^= product >>> 16;
     product += product << 8;
