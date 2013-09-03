@@ -4,11 +4,7 @@ goog.require('poker.cards');
 
 poker.start = function() {
   console.log(poker.cards.toString(poker.cards.fromString('sAcAdAsKhK')));
-  var a = +new Date();
-  for (var i = 0; i < 1000000; ++i) {
-    poker.cards.evalHand('sAc8s8sQsT');
-  }
-  console.log(+new Date() - a);
+  console.log(poker.cards.evalHand('sAsKsQsTsJcAdA')); // => 1
 };
 
 // Ensures the symbol will be visible after compiler renaming.

@@ -83,7 +83,7 @@ poker.cards.fromString = function(cardsStr) {
  */
 poker.cards.toString = function(cardsNum) {
   var strs = [];
-  for (var cards = cardsNum; cards != 0; cards = cards / 53 >> 0) {
+  for (var cards = cardsNum; cards != 0; cards = Math.floor(cards / 53)) {
     strs.push(poker.cards.toStringSingle_(cards % 53));
   }
   return strs.reverse().join('');
@@ -139,7 +139,7 @@ poker.cards.toStringSingle_ = function(cardNum) {
     case 3: suit = poker.cards.Suit.CLUB; break;
   }
   // Gets rank.
-  var rankNum = ((cardNum - 1) / 4 >> 0) + 2;
+  var rankNum = Math.floor((cardNum - 1) / 4) + 2;
   if (rankNum == 14) {
     rankNum = 1;
   }
@@ -174,13 +174,13 @@ poker.cards.evalHand = function(cardsNumOrStr, opt_otherCardsNumOrStr) {
   var allCards = [];
   for (var cardsNum = typeof cardsNumOrStr == 'number' ?
       cardsNumOrStr : poker.cards.fromString(cardsNumOrStr);
-      cardsNum != 0; cardsNum = cardsNum / 53 >> 0) {
+      cardsNum != 0; cardsNum = Math.floor(cardsNum / 53)) {
     allCards.push(cardsNum % 53);
   }
   if (opt_otherCardsNumOrStr) {
     for (cardsNum = typeof opt_otherCardsNumOrStr == 'number' ?
         opt_otherCardsNumOrStr : poker.cards.fromString(opt_otherCardsNumOrStr);
-        cardsNum != 0; cardsNum = cardsNum / 53 >> 0) {
+        cardsNum != 0; cardsNum = Math.floor(cardsNum / 53)) {
       allCards.push(cardsNum % 53);
     }
   }
@@ -192,7 +192,7 @@ poker.cards.evalHand = function(cardsNumOrStr, opt_otherCardsNumOrStr) {
       /** @type {Array.<number>} */
       var cards = [];
       for (var j = 0; j < 6; ++j) {
-        if (i != j) {
+        if (j != i) {
           cards.push(allCards[j]);
         }
       }
@@ -264,7 +264,7 @@ poker.cards.eval5Cards_ = function(cards) {
     // Pair. See {@link http://www.psenzee.com/code/fast_eval.c}.
     var product = 1;
     for (i = 0; i < 5; ++i) {
-      product *= poker.hashtables.RANK_PRIMES[(cards[i] - 1) / 4 >> 0];
+      product *= poker.hashtables.RANK_PRIMES[Math.floor((cards[i] - 1) / 4)];
     }
     product += 0xe91aaa35;
     product ^= product >>> 16;
